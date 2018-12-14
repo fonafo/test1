@@ -1,0 +1,287 @@
+var arg = getParam();
+var ev = getParam(2);
+var me = getParam(3);
+
+var STD_LIST = '$stdList'; //학생 리스트
+var MOVE_PARTICLE_TIME = 2000;  //파티클 이동 시간
+var BG_TIME = 1000;  //배경 깜빡 시간
+
+if(!me) {
+
+    if(ev === 'Page Run') {
+        if(!file.get(STD_LIST)) {
+            exe.run('runDevice', {op:'getLoginStudentsProfile'});
+        }
+        else {
+            setRanking();
+        }
+
+        //TODO 테스트 용
+        // var test = [];
+        // test.push({display_name:'Name1', id:'1', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name2', id:'2', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name3', id:'3', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name4', id:'4', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name5', id:'5', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name6', id:'6', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name7', id:'7', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name8', id:'8', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name9', id:'9', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name10', id:'10', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name11', id:'11', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name12', id:'12', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name13', id:'13', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name14', id:'14', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name15', id:'15', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+        // test.push({display_name:'Name16', id:'16', thumbnail:'http://211.110.140.241/bug/images/mantis_logo.png'});
+
+        // file.set(STD_LIST, test);
+
+        // setRanking();
+    }
+    else if(ev === 'Custom Event') {
+
+		if(arg.indexOf('DeviceResponse') != -1) {
+		    var resData = exe.run('getDeviceResponse', arg.split('__')[1]);
+
+		    if(resData.op === 'notifyLoginStudentsProfileResult') {    //학생 리스트
+		        file.set(STD_LIST, resData.data);
+
+		        setRanking();
+		    }
+		}
+    }
+    else if(ev === 'Flick Right') {
+    	exe.run('runDevice', {op:'movePrevContent'});
+    }
+    else if(ev === 'Flick Left') {
+    	exe.run('runDevice', {op:'moveNextContent'});
+    }
+}
+else {
+    wgtLabel = wgt.get(me, 'label');
+
+    if(wgtLabel.indexOf('r$bg') >= 0) {  //배경 클릭
+
+        if(ev === 'Tap') {
+            file.set('$ranking', '');
+            linkToBack();
+        }
+    }
+}
+
+function setRanking() { //랭킹을 셋팅한다.
+
+    //TODO 테스트 용
+    /////////////////////////////////////////////////////////////////////////////////////
+    // var test = [
+    //     {sid: '1', score:600, time:103}
+    //     , {sid: '2', score:700, time:105}
+    //     , {sid: '3', score:200, time:101}
+    //     , {sid: '4', score:300, time:100}
+    //     , {sid: '5', score:500, time:102}
+    //     , {sid: '6', score:500, time:102}
+    //     , {sid: '7', score:400, time:101}
+    //     , {sid: '8', score:300, time:100}
+    //     , {sid: '9', score:200, time:100}
+    //     , {sid: '10', score:100, time:104}
+    //     , {sid: '11', score:300, time:100}
+    //     , {sid: '12', score:400, time:100}
+    //     , {sid: '13', score:600, time:103}
+    //     , {sid: '14', score:600, time:103}
+    //     , {sid: '15', score:200, time:100}
+    //     , {sid: '16', score:600, time:103}
+    // ];
+
+    // file.set('$ranking', test);
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    var ranking = file.get('$ranking');
+
+    console.error('=== ranking === ', ranking);
+
+    if(!ranking) {
+        return;
+    }
+
+    //sort 함수 내에 function이 동작하지 않는 관계로 노가다로 함...
+    var tempArr = [];
+    var tempStr;
+    var addCount;
+    var digit = 4;
+    var maxTime = new Date(8640000000000000).getTime();
+
+    for(var i in ranking) {
+
+        addCount = (digit-String(ranking[i].score).length);
+
+        tempStr = '';
+
+        for(var k=0; k<addCount; k++) {
+            tempStr += 0;
+        }
+
+        tempStr += String(ranking[i].score)+String(maxTime-ranking[i].time)+'_'+i
+
+        tempArr.push(tempStr);
+    }
+
+    tempArr.sort();
+
+    var sortedRanking = {
+        1:[]
+        , 2:[]
+        , 3:[]
+    }
+
+    var prevRank;
+    var rankObj;
+    var rankIdx = 0;
+    var stdInfo;
+
+    for(var i=tempArr.length-1; i>=0; i--) {
+        rankObj = ranking[tempArr[i].split('_')[1]];
+
+        stdInfo = getStudentNameThumnail(rankObj.sid);
+
+        if(!prevRank || prevRank.score > rankObj.score || (prevRank.score == rankObj.score && prevRank.time < rankObj.time)
+            || sortedRanking[rankIdx].length >= 8) {    //공동 등수는 최대 8명(사진 3명 + 이름 5명)
+
+            rankIdx++;
+        }
+
+        if(!sortedRanking[rankIdx])
+            break;
+
+        sortedRanking[rankIdx].push({
+            name : stdInfo.name
+            , thumbnail : stdInfo.thumbnail
+        });
+
+        prevRank = {
+            score : rankObj.score
+            , time : rankObj.time
+        }
+    }
+
+    console.error('=== sortedRanking === ', sortedRanking);
+
+    //랜덤으로 보여주기 위해 섞는다.
+    for(var i in sortedRanking) {
+
+        if(sortedRanking[i].length > 1) {
+            shuffleArray(sortedRanking[i]);
+        }
+    }
+
+    console.error('=== sortedShuffleRanking === ', sortedRanking);
+
+    //외부에서 읽을수 있도록 정렬된 랭킹 정보를 저장해둔다.
+    file.set('$sortedRanking', sortedRanking);
+
+    setRankingUi(sortedRanking);
+}
+
+//랭킹 화면을 셋팅한다.
+function setRankingUi(/*Array*/sortedRanking) {
+
+    var layerIdx;
+    var layer;
+    var starWgt, nameWgt;
+    var nameY;
+
+    for(var i in sortedRanking) {
+
+        layerIdx = (sortedRanking[i].length <= 3) ? sortedRanking[i].length : 3;
+
+        if(layerIdx > 0) {
+            wgt.changeState(getWidget('p$photo_'+i), 'Layer'+layerIdx);
+
+            nameY = wgt.get(getWidget('r$nameArea_'+i), 'y');
+
+            for(var k in sortedRanking[i]) {
+                layer = wgt.getLayer(getWidget('p$photo_'+i), 'Layer'+layerIdx);
+
+                if(parseInt(k) < 3) {   //3명까지는 사진 셋팅
+                    wgt.set(getWidget('r$photo_'+(parseInt(k)+1), layer), 'media', sortedRanking[i][k].thumbnail);
+                }
+                else {  //4명째 부터는 이름 셋팅
+                    starWgt = wgt.clone(getWidget('r$starSample_'+i));
+                    nameWgt = wgt.clone(getWidget('r$nameSample_'+i));
+
+                    wgt.set(starWgt, 'label', 'r$star_'+i);
+                    wgt.set(nameWgt, 'label', 'r$name_'+i);
+
+                    wgt.moveTo(starWgt, wgt.get(getWidget('r$nameArea_'+i), 'x'), nameY+10);
+                    wgt.moveTo(nameWgt, wgt.get(starWgt, 'x')+wgt.get(starWgt, 'w')+10, nameY);
+
+                    nameY += wgt.get(nameWgt, 'h');
+                }
+            }
+        }
+        else {
+        	wgt.set(getWidget('p$photo_'+i), 'visibility', 'hidden');
+        }
+    }
+
+    showAnimation();
+
+    wgt.changeState(getWidget('m$audio'), 'Play');
+}
+
+//각종 장식 애니메이션을 보여준다.
+function showAnimation() {
+
+    //반짝이
+    wgt.set(getWidget('p$blingAni'), 'visibility', 'visibleEventPass');
+    wgt.changeState(getWidget('p$blingAni'), 'Loop');
+
+    //꽃가루
+    var arrParticleAni = getWidgets('p$particleAni_', undefined, true).split(',');
+
+    for(var i in arrParticleAni) {
+        wgt.set(arrParticleAni[i], 'visibility', 'visibleEventPass');
+        wgt.changeState(arrParticleAni[i], 'Loop');
+        wgt.moveTo(arrParticleAni[i], wgt.get(arrParticleAni[i], 'x'), -(wgt.get(arrParticleAni[i], 'h')));
+        wgt.moveTo(arrParticleAni[i], wgt.get(arrParticleAni[i], 'x'), 800, 0, 'linear '+MOVE_PARTICLE_TIME+'ms');
+    }
+
+    //배경
+    wgt.opacityTo(getWidget('r$bg'), 0, 0, 'ease '+BG_TIME+'ms roundTrip');
+    wgt.opacityTo(getWidget('r$bg'), 0, BG_TIME, 'ease '+BG_TIME+'ms roundTrip');
+}
+
+//학생의 썸네일과 이름을 구한다.
+function getStudentNameThumnail(id) {
+
+    var result = {name:'', thumbnail:''};
+    var stdList = file.get(STD_LIST);
+
+    for(var i in stdList) {
+
+        if(stdList[i].id == id) {
+            result = {name:stdList[i].display_name, thumbnail:stdList[i].thumbnail};
+            break;
+        }
+    }
+
+    return result;
+}
+
+//배열을 랜덤으로 섞는다.
+function shuffleArray(array) {
+
+	var currentIndex = array.length, temporaryValue, randomIndex;
+
+	while(0 !== currentIndex) {
+
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
+
+	return array;
+}
